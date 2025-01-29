@@ -1,11 +1,11 @@
 import Link from "next/link"
-import { Button } from "../components/ui/button"
+import { Button } from "./ui/button"
 
 export function SiteHeader() {
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-black">
+    <header className="w-full bg-black text-white">
       <div className="container flex h-16 items-center justify-between">
-        <Link href="/" className="text-2xl font-bold text-white">
+        <Link href="/" className="text-2xl font-bold">
           Pathway
         </Link>
         <nav className="flex items-center gap-4">
@@ -22,4 +22,4 @@ export function SiteHeader() {
       </div>
     </header>
   )
-} 
+}

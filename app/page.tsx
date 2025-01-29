@@ -9,8 +9,7 @@ export default function Home() {
         <div className="container px-4 py-16 md:py-24">
           <div className="text-center space-y-8 max-w-4xl mx-auto">
             <h1 className="text-4xl md:text-6xl font-bold tracking-tight">
-              Your global immigration advisor,{" "}
-              <span className="block">that always knows your context.</span>
+              Your global immigration advisor, that always knows your context.
             </h1>
             <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto">
               Pathway is your lifetime immigration advisor for international couples. Upload your information, once. Get answers in seconds on immigration timelines, residency requirements, etc., for the US, EU countries, and anywhere else.
@@ -21,4 +20,4 @@ export default function Home() {
       </main>
     </div>
   )
-} 
+}
