@@ -15,10 +15,10 @@ export function SearchSection() {
     setQuestion(text)
   }
 
-  // Add a formatting function
+  // Modify the formatting function to be more aggressive
   const formatAnswer = (rawAnswer: string) => {
-    // Remove the thinking section
-    const withoutThinking = rawAnswer.replace(/<think>.*?<\/think>/s, '')
+    // Remove everything between <think> tags including the tags
+    const withoutThinking = rawAnswer.replace(/<think>[\s\S]*?<\/think>/g, '').trim()
     
     // Split into paragraphs and clean up
     const paragraphs = withoutThinking.split('\n')
@@ -48,15 +48,22 @@ export function SearchSection() {
           messages: [
             { 
               role: 'system', 
-              content: 'You are an immigration advisor. Think through each answer carefully considering:\n\n' +
-                      '1. All relevant immigration laws and how they interact\n' +
-                      '2. Which jurisdiction\'s laws take precedence\n' +
-                      '3. Special cases and exceptions\n\n' +
-                      'After your analysis, structure your VISIBLE response in exactly three parts:\n\n' +
-                      '• Key Points: List 2-3 bullet points summarizing the answer\n' +
-                      '• Sources: List the specific government documents or websites that provide this information\n' +
-                      '• Answer: Provide a single, clear paragraph stating what the person should do, based on the sources\n\n' +
-                      'Important: Start your reasoning with <think> and end it with </think>. Everything between these tags will be hidden.'
+              content: 'You are an immigration advisor. For each answer:\n\n' +
+                      '1. First, put ALL your reasoning inside <think></think> tags\n' +
+                      '2. Then, AFTER the think tags, structure your response as:\n\n' +
+                      '• Key Points: List 2-3 bullet points\n' +
+                      '• Sources: List relevant government websites\n' +
+                      '• Answer: One clear paragraph\n\n' +
+                      'Example format:\n' +
+                      '<think>Your reasoning here...</think>\n\n' +
+                      'Key Points:\n' +
+                      '• Point 1\n' +
+                      '• Point 2\n\n' +
+                      'Sources:\n' +
+                      '• Source 1\n' +
+                      '• Source 2\n\n' +
+                      'Answer:\n' +
+                      'Clear answer here.'
             },
             { role: 'user', content: question }
           ],
