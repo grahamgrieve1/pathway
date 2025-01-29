@@ -15,6 +15,21 @@ export function SearchSection() {
     setQuestion(text)
   }
 
+  // Add a formatting function
+  const formatAnswer = (rawAnswer: string) => {
+    // Example processing:
+    // 1. Split into paragraphs
+    const paragraphs = rawAnswer.split('\n')
+    
+    // 2. Add formatting (example)
+    const formatted = paragraphs
+      .map(p => p.trim())
+      .filter(p => p.length > 0)
+      .join('\n\n')
+
+    return formatted
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
@@ -30,7 +45,19 @@ export function SearchSection() {
         },
         body: JSON.stringify({
           model: 'sonar-reasoning',
-          messages: [{ role: 'user', content: question }],
+          messages: [
+            // System message to set the tone and format
+            { 
+              role: 'system', 
+              content: 'You are an immigration advisor. Always structure your answers like this:\n\n' +
+                      '1. First, summarize the key points in a brief but bulleted manner\n' +
+                      '2. Then list the documents that serve as the source of truth and basis for the correct answer. these should be government documents or government websites.\n' +
+                      '3. Finally, provide clear and brief answer that based on how those documents answer the question, and considering how some jurisdictions laws may override others.\n\n' +
+                      'Keep answers concise and practical.'
+            },
+            // The actual user question
+            { role: 'user', content: question }
+          ],
           max_tokens: 1000,
         }),
       })
@@ -41,7 +68,10 @@ export function SearchSection() {
 
       const data = await response.json()
       if (data.choices && data.choices[0]) {
-        setAnswer(data.choices[0].message.content)
+        // Process the response before setting state
+        const rawAnswer = data.choices[0].message.content
+        const formattedAnswer = formatAnswer(rawAnswer)
+        setAnswer(formattedAnswer)
       } else {
         setError('Unexpected API response format')
       }
