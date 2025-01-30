@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Button } from "./ui/button"
 import { Input } from "./ui/input"
 import { ArrowRight, Clock, Home, MoreHorizontal } from "lucide-react"
+import { Tooltip } from "./ui/tooltip"
 
 export function SearchSection() {
   const [question, setQuestion] = useState("")
@@ -33,11 +34,31 @@ export function SearchSection() {
 
   const formatAnswer = (rawAnswer: string) => {
     const withoutThinking = rawAnswer.replace(/<think>[\s\S]*?<\/think>/g, '').trim()
-    const paragraphs = withoutThinking.split('\n')
+    
+    // Convert source URLs to numbered references
+    let sourceCount = 1
+    const sourceMap = new Map()
+    
+    const formattedText = withoutThinking.replace(
+      /• (https?:\/\/[^\s]+)/g,
+      (match, url) => {
+        sourceMap.set(sourceCount, url)
+        return `• <source>${sourceCount++}</source>`
+      }
+    )
+
+    const paragraphs = formattedText.split('\n')
     const formatted = paragraphs
-      .map(p => p.trim())
+      .map(p => {
+        // Replace <source>N</source> with styled number circles
+        return p.replace(
+          /<source>(\d+)<\/source>/g,
+          (_, num) => `<span class="inline-flex items-center justify-center w-5 h-5 text-xs rounded-full bg-gray-200 text-gray-700 cursor-help" data-source="${sourceMap.get(parseInt(num))}">${num}</span>`
+        )
+      })
       .filter(p => p.length > 0)
       .join('\n\n')
+
     return formatted
   }
 
@@ -138,9 +159,17 @@ export function SearchSection() {
       )}
 
       {answer && (
-        <div className="mt-6 p-4 bg-blue-50 text-blue-800 rounded-lg animate-fadeIn">
-          {answer}
-        </div>
+        <div 
+          className="mt-6 p-4 bg-blue-50 text-blue-800 rounded-lg animate-fadeIn"
+          dangerouslySetInnerHTML={{ __html: answer }}
+          onMouseOver={(e) => {
+            const target = e.target as HTMLElement
+            if (target.dataset.source) {
+              // Show tooltip with source URL
+              // You'll need to implement the tooltip logic here
+            }
+          }}
+        />
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
