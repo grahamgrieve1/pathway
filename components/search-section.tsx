@@ -35,29 +35,31 @@ export function SearchSection() {
   const formatAnswer = (rawAnswer: string) => {
     const withoutThinking = rawAnswer.replace(/<think>[\s\S]*?<\/think>/g, '').trim()
     
-    // Convert source URLs to numbered references with titles
+    // First find and store all sources
     let sourceCount = 1
     const sourceMap = new Map()
     
-    const formattedText = withoutThinking.replace(
-      /• \[(.*?)\]\((https?:\/\/[^\s)]+)\)/g,
-      (match, title, url) => {
-        sourceMap.set(sourceCount, { title, url })
-        return `• <source>${sourceCount++}</source>`
+    // Match markdown links in the Sources section
+    const sourcesSection = withoutThinking.match(/Sources:([\s\S]*?)(?=Answer:)/)?.[1] || ''
+    const sourceLinks = Array.from(sourcesSection.matchAll(/\[([^\]]+)\]\(([^)]+)\)/g))
+    
+    sourceLinks.forEach(([_, title, url]) => {
+      sourceMap.set(sourceCount++, { title, url })
+    })
+
+    // Replace full source lines with numbered references
+    let formattedText = withoutThinking.replace(
+      /• \[([^\]]+)\]\(([^)]+)\)/g,
+      (_, title, url) => {
+        const num = Array.from(sourceMap.entries()).find(([_, s]) => s.url === url)?.[0]
+        return `• <span class="inline-flex items-center justify-center w-5 h-5 text-xs rounded-full bg-gray-200 text-gray-700 cursor-help" data-tooltip-title="${title}" data-tooltip-url="${url}">${num}</span>`
       }
     )
 
+    // Clean up and format paragraphs
     const paragraphs = formattedText.split('\n')
     const formatted = paragraphs
-      .map(p => {
-        return p.replace(
-          /<source>(\d+)<\/source>/g,
-          (_, num) => {
-            const source = sourceMap.get(parseInt(num))
-            return `<span class="inline-flex items-center justify-center w-5 h-5 text-xs rounded-full bg-gray-200 text-gray-700 cursor-help" data-tooltip-title="${source.title}" data-tooltip-url="${source.url}">${num}</span>`
-          }
-        )
-      })
+      .map(p => p.trim())
       .filter(p => p.length > 0)
       .join('\n\n')
 
@@ -176,16 +178,24 @@ export function SearchSection() {
               if (target.dataset.tooltipTitle && target.dataset.tooltipUrl) {
                 // Show tooltip
                 const tooltip = document.createElement('div')
-                tooltip.className = 'fixed bg-white p-2 rounded-lg shadow-lg z-50'
-                tooltip.innerHTML = `<strong>${target.dataset.tooltipTitle}</strong><br/>${target.dataset.tooltipUrl}`
+                tooltip.className = 'fixed bg-white p-3 rounded-lg shadow-lg z-50 max-w-sm border border-gray-200'
+                tooltip.innerHTML = `
+                  <div class="font-bold mb-1">${target.dataset.tooltipTitle}</div>
+                  <div class="text-sm text-gray-600">${target.dataset.tooltipUrl}</div>
+                `
                 document.body.appendChild(tooltip)
                 
                 // Position tooltip
                 const rect = target.getBoundingClientRect()
                 tooltip.style.left = `${rect.left}px`
-                tooltip.style.top = `${rect.bottom + 5}px`
+                tooltip.style.top = `${rect.bottom + 8}px`
                 
-                target.addEventListener('mouseleave', () => tooltip.remove())
+                // Remove tooltip on mouseleave
+                const removeTooltip = () => {
+                  tooltip.remove()
+                  target.removeEventListener('mouseleave', removeTooltip)
+                }
+                target.addEventListener('mouseleave', removeTooltip)
               }
             }}
           />
