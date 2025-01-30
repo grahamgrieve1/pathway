@@ -5,6 +5,8 @@ import { Button } from "./ui/button"
 import { Input } from "./ui/input"
 import { ArrowRight, Clock, Home, MoreHorizontal } from "lucide-react"
 import { Tooltip, TooltipProvider } from "./ui/tooltip"
+import { Footnote } from "./ui/footnote"
+import { createRoot } from "react-dom/client"
 
 export function SearchSection() {
   const [question, setQuestion] = useState("")
@@ -47,12 +49,12 @@ export function SearchSection() {
       sourceMap.set(sourceCount++, { title, url })
     })
 
-    // Replace full source lines with numbered references
+    // Replace full source lines with Footnote components
     let formattedText = withoutThinking.replace(
       /• \[([^\]]+)\]\(([^)]+)\)/g,
       (_, title, url) => {
         const num = Array.from(sourceMap.entries()).find(([_, s]) => s.url === url)?.[0]
-        return `• <span class="inline-flex items-center justify-center w-5 h-5 text-xs rounded-full bg-gray-200 text-gray-700 cursor-help" data-tooltip-title="${title}" data-tooltip-url="${url}">${num}</span>`
+        return `<footnote data-id="${num}" data-headline="${title}" data-url="${url}"></footnote>`
       }
     )
 
@@ -163,43 +165,32 @@ export function SearchSection() {
       )}
 
       {answer && (
-        <TooltipProvider>
-          <div 
-            className="mt-6 p-4 bg-blue-50 text-blue-800 rounded-lg animate-fadeIn"
-            dangerouslySetInnerHTML={{ __html: answer }}
-            onClick={(e) => {
-              const target = e.target as HTMLElement
-              if (target.dataset.tooltipUrl) {
-                window.open(target.dataset.tooltipUrl, '_blank')
-              }
-            }}
-            onMouseOver={(e) => {
-              const target = e.target as HTMLElement
-              if (target.dataset.tooltipTitle && target.dataset.tooltipUrl) {
-                // Show tooltip
-                const tooltip = document.createElement('div')
-                tooltip.className = 'fixed bg-white p-3 rounded-lg shadow-lg z-50 max-w-sm border border-gray-200'
-                tooltip.innerHTML = `
-                  <div class="font-bold mb-1">${target.dataset.tooltipTitle}</div>
-                  <div class="text-sm text-gray-600">${target.dataset.tooltipUrl}</div>
-                `
-                document.body.appendChild(tooltip)
+        <div 
+          className="mt-6 p-4 bg-blue-50 text-blue-800 rounded-lg animate-fadeIn"
+          ref={(node) => {
+            if (node) {
+              // Replace footnote placeholders with actual Footnote components
+              const footnotes = node.getElementsByTagName('footnote')
+              Array.from(footnotes).forEach(footnote => {
+                const id = parseInt(footnote.dataset.id || '0')
+                const headline = footnote.dataset.headline || ''
+                const url = footnote.dataset.url || ''
                 
-                // Position tooltip
-                const rect = target.getBoundingClientRect()
-                tooltip.style.left = `${rect.left}px`
-                tooltip.style.top = `${rect.bottom + 8}px`
-                
-                // Remove tooltip on mouseleave
-                const removeTooltip = () => {
-                  tooltip.remove()
-                  target.removeEventListener('mouseleave', removeTooltip)
-                }
-                target.addEventListener('mouseleave', removeTooltip)
-              }
-            }}
-          />
-        </TooltipProvider>
+                const wrapper = document.createElement('span')
+                const root = createRoot(wrapper)
+                root.render(
+                  <Footnote 
+                    id={id} 
+                    headline={headline} 
+                    summary={url} 
+                  />
+                )
+                footnote.parentNode?.replaceChild(wrapper, footnote)
+              })
+            }
+          }}
+          dangerouslySetInnerHTML={{ __html: answer }}
+        />
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
