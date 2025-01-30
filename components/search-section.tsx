@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Button } from "./ui/button"
 import { Input } from "./ui/input"
 import { ArrowRight, Clock, Home, MoreHorizontal } from "lucide-react"
-import { Tooltip } from "./ui/tooltip"
+import { Tooltip, TooltipProvider } from "./ui/tooltip"
 
 export function SearchSection() {
   const [question, setQuestion] = useState("")
@@ -35,14 +35,14 @@ export function SearchSection() {
   const formatAnswer = (rawAnswer: string) => {
     const withoutThinking = rawAnswer.replace(/<think>[\s\S]*?<\/think>/g, '').trim()
     
-    // Convert source URLs to numbered references
+    // Convert source URLs to numbered references with titles
     let sourceCount = 1
     const sourceMap = new Map()
     
     const formattedText = withoutThinking.replace(
-      /• (https?:\/\/[^\s]+)/g,
-      (match, url) => {
-        sourceMap.set(sourceCount, url)
+      /• \[(.*?)\]\((https?:\/\/[^\s)]+)\)/g,
+      (match, title, url) => {
+        sourceMap.set(sourceCount, { title, url })
         return `• <source>${sourceCount++}</source>`
       }
     )
@@ -50,10 +50,12 @@ export function SearchSection() {
     const paragraphs = formattedText.split('\n')
     const formatted = paragraphs
       .map(p => {
-        // Replace <source>N</source> with styled number circles
         return p.replace(
           /<source>(\d+)<\/source>/g,
-          (_, num) => `<span class="inline-flex items-center justify-center w-5 h-5 text-xs rounded-full bg-gray-200 text-gray-700 cursor-help" data-source="${sourceMap.get(parseInt(num))}">${num}</span>`
+          (_, num) => {
+            const source = sourceMap.get(parseInt(num))
+            return `<span class="inline-flex items-center justify-center w-5 h-5 text-xs rounded-full bg-gray-200 text-gray-700 cursor-help" data-tooltip-title="${source.title}" data-tooltip-url="${source.url}">${num}</span>`
+          }
         )
       })
       .filter(p => p.length > 0)
@@ -91,7 +93,7 @@ export function SearchSection() {
                       '1. First, put ALL your reasoning inside <think></think> tags\n' +
                       '2. Then, AFTER the think tags, structure your response as:\n\n' +
                       '• Key Points: List 2-3 bullet points\n' +
-                      '• Sources: List relevant government websites\n' +
+                      '• Sources: List sources in format: • [Title of Source](URL)\n' +
                       '• Answer: One clear paragraph\n\n' +
                       'Example format:\n' +
                       '<think>Your reasoning here...</think>\n\n' +
@@ -99,8 +101,8 @@ export function SearchSection() {
                       '• Point 1\n' +
                       '• Point 2\n\n' +
                       'Sources:\n' +
-                      '• Source 1\n' +
-                      '• Source 2\n\n' +
+                      '• [USCIS - Official Guide](https://www.uscis.gov/guide)\n' +
+                      '• [Travel.State.Gov](https://travel.state.gov)\n\n' +
                       'Answer:\n' +
                       'Clear answer here.'
             },
@@ -159,17 +161,35 @@ export function SearchSection() {
       )}
 
       {answer && (
-        <div 
-          className="mt-6 p-4 bg-blue-50 text-blue-800 rounded-lg animate-fadeIn"
-          dangerouslySetInnerHTML={{ __html: answer }}
-          onMouseOver={(e) => {
-            const target = e.target as HTMLElement
-            if (target.dataset.source) {
-              // Show tooltip with source URL
-              // You'll need to implement the tooltip logic here
-            }
-          }}
-        />
+        <TooltipProvider>
+          <div 
+            className="mt-6 p-4 bg-blue-50 text-blue-800 rounded-lg animate-fadeIn"
+            dangerouslySetInnerHTML={{ __html: answer }}
+            onClick={(e) => {
+              const target = e.target as HTMLElement
+              if (target.dataset.tooltipUrl) {
+                window.open(target.dataset.tooltipUrl, '_blank')
+              }
+            }}
+            onMouseOver={(e) => {
+              const target = e.target as HTMLElement
+              if (target.dataset.tooltipTitle && target.dataset.tooltipUrl) {
+                // Show tooltip
+                const tooltip = document.createElement('div')
+                tooltip.className = 'fixed bg-white p-2 rounded-lg shadow-lg z-50'
+                tooltip.innerHTML = `<strong>${target.dataset.tooltipTitle}</strong><br/>${target.dataset.tooltipUrl}`
+                document.body.appendChild(tooltip)
+                
+                // Position tooltip
+                const rect = target.getBoundingClientRect()
+                tooltip.style.left = `${rect.left}px`
+                tooltip.style.top = `${rect.bottom + 5}px`
+                
+                target.addEventListener('mouseleave', () => tooltip.remove())
+              }
+            }}
+          />
+        </TooltipProvider>
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
